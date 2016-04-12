@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+	<div id="images"></div>
+	<canvas style="margin:0;padding:0;position:relative;border-color:black;border-style: solid;border-width: 1px;" id="imgCanvas" width="1000px" height="500px"></canvas>
+	<div id="posInfo"></div>
+	<div id="timer"></div>
+	<button onclick="timer(Date.now())" id="start-btn">Start</button>
+	<script>
+		timer(Date.now());
+		var canvas = document.getElementById("imgCanvas");
+		var context = canvas.getContext("2d");
+		var posx = 20;
+		var posy = 20;
+
+		function createImageOnCanvas(imageId) {
+			//canvas.style.display = "block";
+			//document.getElementById("images").style.overflowY = "hidden";
+			//var img = new Image(300, 300);
+			//img.src = document.getElementById(imageId).src;
+			//context.drawImage(img, (0), (0)); //onload....
+		}
+
+		function draw(e) {
+			context.fillStyle = "#000000";
+			console.log(e.keyCode);
+			context.fillRect(posx, posy, 4, 4);
+			// TODO connect the xmlhttprequest, get the value from the 3dacc meter
+			// change the posx and posy by the value parsed
+			switch(e.keyCode){
+				case 37:
+					posx -= (posx >= 0) ? 5 : 0;
+					break;
+				case 38:
+					posy -= (posy >= 0) ? 5 : 0;
+					break;
+				case 39:
+					posx += (posx <= 995) ? 5 : 0;
+					break;
+				case 40:
+					posy += (posy <= 495) ? 5 : 0;
+					break;
+
+				case 87:
+					posy -= (posy >= 0) ? 5 : 0;
+					break;
+				case 65:
+					posx -= (posx >= 0) ? 5 : 0;
+					break;
+				case 88:
+					posy += (posy <= 495) ? 5 : 0;
+					break;
+				case 68:
+					posx += (posx <= 995) ? 5 : 0;
+					break;
+
+				case 81:
+					posx -= (posx >= 0) ? 5 : 0;
+					posy -= (posy >= 0) ? 5 : 0;
+					break;
+				case 67:
+					posy += (posy <= 495) ? 5 : 0;
+					posx += (posx <= 995) ? 5 : 0;
+					break;
+				case 69:
+					posy -= (posy >= 0) ? 5 : 0;
+					posx += (posx <= 995) ? 5 : 0;
+					break;
+				case 90:
+					posx -= (posx >= 0) ? 5 : 0;
+					posy += (posy <= 495) ? 5 : 0;
+					break;
+			}
+			context.fillStyle = "#FF0000";
+			context.fillRect(posx, posy, 4, 4);
+			document.getElementById("posInfo").innerHTML=
+				(posx >= 0 && posx <= 995 && posy >= 0 && posy <= 495) ?
+				"position: x="+posx+"  y="+posy :
+				"position out of range";
+		}
+
+		window.addEventListener('keydown', draw, false);
+
+		function timer(duration){
+			var el=document.getElementById('timer');
+			document.getElementById("start-btn").style.visibility = "hidden";;
+			var exp = 0;
+			var rAF = window.requestAnimationFrame || function(callback){window.setTimeout(callback,1000000/60);};
+			function pad(n,s){
+				s = s||2;
+				return ("00000"+n).substr(-s);
+			}
+			(function update() {
+				//console.log("Counting");
+				var n = Date.now(),
+					e = (n-duration),
+					ms= (e%1000),
+					s = ((e/1000)%60) >> 0,
+					m = ((e/(1000*60))%60) >> 0,
+					h = ((e/(1000*60*60))%24) >> 0;
+				if (e > 0) {
+					el.innerHTML = pad(h)+":"+pad(m)+":"+pad(s)+":"+pad(ms,3);
+					rAF(update);
+				} else {
+					el.innerHTML = "00:00:00:000";
+				}
+			})();
+		};
+
+
+	</script>
+</body>
+</html>
