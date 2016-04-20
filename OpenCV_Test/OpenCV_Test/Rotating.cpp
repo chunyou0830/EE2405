@@ -9,7 +9,7 @@ using namespace std;
 int edgeThresh = 50;
 void main(){
 	Mat frame;
-	VideoCapture cap(0);
+	VideoCapture cap(1);
 	while (true) {
 		if (!cap.read(frame))
 			break;
@@ -42,7 +42,8 @@ void main(){
 		cout << "----------------" << endl;
 
 		// Show images
+		cvShowImage("Canny Edge", pDstImg);
 		cvShowImage("Source", pSrcImg);
-		cvWaitKey(50);
+		cvWaitKey(150);
 	}
 }
