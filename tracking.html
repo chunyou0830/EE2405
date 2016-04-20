@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>EE2405 Midterm by 103061142</title>
+	<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+</head>
+<body>
+	<div class="container">
+		<h1 class="text-center">EE2405 Embedded System Lab Midterm Project</h1>
+		<p class="text-muted text-center">103061142 Chun You, Yang</p>
+		<hr>
+		<h3>Part 1. Route Tracking Simulation<button class="pull-right btn btn-danger" onclick="resetMap()">Reset the map</button></h3>
+		<ul>
+			<li>Draw the route by points</li>
+			<li>With speed detection by rotating 3D acceleration meter</li>
+			<li>Unlimited angle</li>
+		</ul>
+		<div class="text-center">
+			<canvas style="margin:0;padding:0;position:relative;border-color:black;border-style: solid;border-width: 1px;" id="imgCanvas" width="1140px" height="500px"></canvas>
+		</div>
+		
+		<pre><code>
+		<span id="posX"></span>
+		<span id="posY"></span>
+		<span id="sensorURL"></span>
+		<span id="sensorX"></span>
+		<span id="sensorY"></span>
+		<span id="timer"></span>
+		<span id="parkingStat"></span>
+		</code></pre>
+		<button onclick="timer(Date.now())" id="start-btn">Start</button>
+		<hr>
+		<p class="pull-right text-muted">Video Playing&nbsp;&nbsp;<a class="btn btn-primary" href="https://github.com/chunyou0830/EE2405/blob/master/OpenCV_Test/OpenCV_Test/Rotating.cpp" target="_blank"><span class="glyphicon glyphicon-link" aria-hidden="true"></span>&nbsp;GitHub</a></p><h3>Part 2. OpenCV Line Detection</h3>
+		<iframe width="1140" height="641" src="https://www.youtube.com/embed/7vgDjJbdVJk?rel=0&amp;controls=0&amp;showinfo=0" frameborder="0" allowfullscreen></iframe>
+	</div>
+	<script>
+		var batch=30;
+    	var samples=batch;
+	    var timecycle=0;
+	    var requestCounter = 0;
+	    var interval = 0;
+	    var nodata = 0;
+	    var serverAddressBase = "xdata.";
+	    var serverAddress = "xdata.0"; //default file to get from server
+
+	    d1 = [];
+	    d2 = [];
+	    d3 = [];
+	    
+	    // Pre-pad the arrays with # of samples null values
+	    for (var i=0; i< samples; ++i) {
+	        d1.push(null);
+	        d2.push(null);
+	        d3.push(null);
+	    }
+
+	    var xmlHttp = createXmlHttpRequestObject();
+
+
+	    // creates XMLHttpRequest Instance
+	    function createXmlHttpRequestObject(){
+
+	      // will store XMLHttpRequest object
+	      // at here
+	      var xmlHttp;
+
+	      // works all exceprt IE6 and older  
+	      try
+	      {
+	      
+		// try to create XMLHttpRequest object
+		xmlHttp = new XMLHttpRequest();    
+	      }
+	      catch(e)
+	      {
+		// assume IE 6 or older
+		try
+		{
+		  xmlHttp = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+		catch(e){ }
+	      }
+	      
+	      // return object or display error
+	      if (!xmlHttp)
+		alert("Error creating the XMLHttpRequest Object");
+	      else
+		return xmlHttp;
+	    }
+
+	    function GetJsonData()
+	    {
+	      //debug
+	      //myDiv = document.getElementById("myDivElement"); 
+	      //myDiv.innerHTML += "Getting Json Data<br>"; 
+	      nodata=0;
+
+	      if(xmlHttp)
+	      {
+		try
+		{
+		  xmlHttp.open("Get", serverAddress, false);
+		  //xmlHttp.onreadystatechange = handleRequestStateChange; //We use synchronous data transfer, so we don't need this here
+		  xmlHttp.send(null);
+		  try{
+			  handleJsonData();
+		  }
+		  catch(err){
+		     if(err=="no data"){
+		          //alert('Waiting '+serverAddressBase+requestCounter);
+			  //setTimeout(GetJsonData,10); //Try again 10ms later
+			  nodata=1; //record status
+		     }
+		  }
+		}
+		catch(e)
+		{
+		  //alert("Can't connect to server\n" + e.toString());
+		}
+	      }
+	    }
+
+	    function handleRequestStateChange()
+	    {
+	      if (xmlHttp.readyState == 4)
+	      {
+		if(xmlHttp.status == 200|| xmlHttp.status == 0)
+		    {
+		      try
+		      {
+			handleJsonData();
+		      }
+		      catch(e)
+		      {
+			//alert("Error reading the response: " + e.toString());
+		      }
+		    }
+		    else
+		    {
+		      //alert("Problem retrieving data:\n" + xmlHttp.statusText);
+		    }
+	      
+	      
+	      }
+	      
+	    }
+
+	    function handleJsonData()
+	    {
+	      var result = xmlHttp.responseText;
+	      if(result==''){
+	        //alert('No data from xmlhttprequest object!');
+		throw "no data";
+	      }
+	      else{
+		      try{
+			      var jobject = eval("(" + result + ")");
+			      var i=0;
+			      if(jobject.time>timecycle){
+				      timecycle=jobject.time;
+				      if(jobject.xarray.length==0){
+					throw "no data";
+				      }
+				      else{
+					      for (i=0;i<jobject.xarray.length;i++)
+					      {
+						  //debug
+						  //myDiv.innerHTML += jobject.xarray[i][0] + ", " + jobject.xarray[i][1] + "<br>" ;
+						  d1[i]=jobject.xarray[i][0];
+						  d2[i]=jobject.xarray[i][1];
+						  d3[i]=jobject.xarray[i][2];
+						  //console.log(d2);
+						  /*
+						  d1.push(jobject.xarray[i][0]); 
+						  d2.push(jobject.xarray[i][1]); 
+						  d3.push(jobject.xarray[i][2]);
+						  */
+					      }
+				      }
+			      }
+			      else{
+				//Do nothing
+			      }
+		      }
+		      catch(e){
+			//Retry; ignore all json errors
+		      }
+	      }
+	    }
+
+
+		timer(Date.now());
+		var canvas = document.getElementById("imgCanvas");
+		var context = canvas.getContext("2d");
+		var posx = 20;
+		var posy = 20;
+		function createImageOnCanvas(imageId) {
+			//canvas.style.display = "block";
+			//document.getElementById("images").style.overflowY = "hidden";
+			//var img = new Image(300, 300);
+			//img.src = document.getElementById(imageId).src;
+			//context.drawImage(img, (0), (0)); //onload....
+		}
+
+		function resetMap(){
+			context.fillStyle = "#FFFFFF";
+			context.fillRect(0,0,2000,1000);
+			posx = 20;
+			posy = 20;
+
+		}
+
+		function draw() {
+			serverAddress=serverAddressBase+requestCounter;
+			GetJsonData();
+			context.rect(850,350,150,100);
+			context.stroke(); 
+			context.fillStyle = "#000000";
+			context.fillRect(posx, posy, 4, 4);
+			/*switch(e.keyCode){
+				case 37:
+					posx -= (posx >= 0) ? 5 : 0;
+					break;
+				case 38:
+					posy -= (posy >= 0) ? 5 : 0;
+					break;
+				case 39:
+					posx += (posx <= 995) ? 5 : 0;
+					break;
+				case 40:
+					posy += (posy <= 495) ? 5 : 0;
+					break;
+				case 87:
+					posy -= (posy >= 0) ? 5 : 0;
+					break;
+				case 65:
+					posx -= (posx >= 0) ? 5 : 0;
+					break;
+				case 88:
+					posy += (posy <= 495) ? 5 : 0;
+					break;
+				case 68:
+					posx += (posx <= 995) ? 5 : 0;
+					break;
+				case 81:
+					posx -= (posx >= 0) ? 5 : 0;
+					posy -= (posy >= 0) ? 5 : 0;
+					break;
+				case 67:
+					posy += (posy <= 495) ? 5 : 0;
+					posx += (posx <= 995) ? 5 : 0;
+					break;
+				case 69:
+					posy -= (posy >= 0) ? 5 : 0;
+					posx += (posx <= 995) ? 5 : 0;
+					break;
+				case 90:
+					posx -= (posx >= 0) ? 5 : 0;
+					posy += (posy <= 495) ? 5 : 0;
+					break;
+			}*/
+			if(d2[0]>1000){
+				posx -= (posx >= 0) ? d2[0]/500 : 0;
+			}
+			else if(d2[0]<-1000){
+				posx += (posx <= 1135) ? -d2[0]/500 : 0;
+			}
+			if(d1[0]>1000){
+				posy -= (posy >= 0) ? d1[0]/500 : 0;
+			}
+			else if(d1[0]<-1000){
+				posy += (posy <= 495) ? -d1[0]/500 : 0;
+			}
+			context.fillStyle = "#FF0000";
+			context.fillRect(posx, posy, 4, 4);
+
+			document.getElementById("parkingStat").innerHTML = "Parked = "+(posx > 850 && posx < 1000 && posy > 350 && posy < 450);
+			document.getElementById("posX").innerHTML = (posx >= 0 && posx <= 995) ? "Position X = "+posx : "Position X = out of range";
+			document.getElementById("posY").innerHTML = (posy >= 0 && posy <= 495) ? "Position Y = "+posy : "Position Y = out of range";
+			document.getElementById("sensorURL").innerHTML = serverAddress;
+			document.getElementById("sensorX").innerHTML = "d1 = "+d1[0];
+			document.getElementById("sensorY").innerHTML = "d2 = "+d2[0];
+
+			if(!nodata){
+				requestCounter=(requestCounter+1)%2;
+			}
+			setTimeout(draw,100);
+		}
+		draw();
+		//window.addEventListener('keydown', draw, false);
+		function timer(duration){
+			var el=document.getElementById('timer');
+			document.getElementById("start-btn").style.visibility = "hidden";;
+			var exp = 0;
+			var rAF = window.requestAnimationFrame || function(callback){window.setTimeout(callback,1000000/60);};
+			function pad(n,s){
+				s = s||2;
+				return ("00000"+n).substr(-s);
+			}
+			(function update() {
+				//console.log("Counting");
+				var n = Date.now(),
+					e = (n-duration),
+					ms= (e%1000),
+					s = ((e/1000)%60) >> 0,
+					m = ((e/(1000*60))%60) >> 0,
+					h = ((e/(1000*60*60))%24) >> 0;
+				if (e > 0) {
+					el.innerHTML = "Elapsed Time = "+pad(h)+":"+pad(m)+":"+pad(s)+":"+pad(ms,3);
+					rAF(update);
+				} else {
+					el.innerHTML = "Elapsed Time = 00:00:00:000";
+				}
+			})();
+		};
+	</script>
+</body>
+</html>
